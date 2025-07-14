@@ -6,7 +6,7 @@ import requests as req
 import pandas as pd
 import io
 from google.cloud import storage
-from typing import Union, Dict, List
+from typing import Union
 from google.cloud.exceptions import GoogleCloudError
 
 
@@ -20,8 +20,8 @@ locations = {
     "https://api.openaq.org/v3/locations/10566/sensors": ["Wroclaw", "Conrad-Korzeniowski cst."],
 }
 
-# API Key.
-header = {"X-API-Key": "014cb4740d53cc185d2f13b14e29f6803ecd4cf252e2cc47f1be8bd29bd5d3e6"}
+# API Key. Requires personal API key to be provided
+header = {"X-API-Key": "Insert key here"}
 
 # Choosing the data from report.
 selected_columns = ["city", "location", "parameter.name", "latest.value", "latest.datetime.utc"]
@@ -34,7 +34,7 @@ logging.basicConfig(level = logging.INFO)
 
 
 
-"""Functions"""
+# === Functions ===
 
 def fetch_data(url: str, header: dict) -> Union[dict, None]:
     """Fetching data from API and collecting JSON.
@@ -148,7 +148,7 @@ def save_to_file(df: pd.DataFrame, bucket_name: str, destination_name: str) -> U
         return f"gs://{bucket_name}/{destination_name}"
 
     except (IOError, GoogleCloudError) as err:
-        logging.warning({f"Error during client initiation: {err}"})
+        logging.warning(f"Error during client initiation: {err}")
         return None
 
 
@@ -165,43 +165,6 @@ def run(request) -> str:
     """
 
     # Creating empty DataFrame for data storing.
-    data = pd.DataFrame()
-
-    # Fetching the data and appending to the list.
-    for url, (city, location) in locations.items():
-        json_data = fetch_data(url, header)
-
-        if json_data is None:
-            continue
-
-        df = normalize_data(json_data,city, location)
-        if df is not None:
-            data.append(df)
-
-
-    if not data:
-        logging.warning("No data collected.")
-        return "No data collected."
-
-    elif data.empty:
-        logging.warning("Final data is empty - no data to save.")
-        return "Final data is empty - no data to save."
-
-    # Setting bucket name. Needs to be updated when implementing into GCS.
-    bucket_name = "input_bucket_name"
-
-    destination_name = "results.csv"
-
-    # Saving the file to GCS.
-    gcs_dest = save_to_file(df, bucket_name, destination_name)
-
-    if gcs_dest is None:
-        return "Failed to upload the file to GCS."
-
-    return f"File uploaded to {gcs_dest}"
-
-
-def run2():
     data = []
 
     # Fetching the data and appending to the list.
@@ -215,6 +178,7 @@ def run2():
         if df is not None:
             data.append(df)
 
+    # Concatenating the data.
     concat_data = pd.concat(data,ignore_index = True)
 
     if not data:
@@ -225,8 +189,15 @@ def run2():
         logging.warning("Final data is empty - no data to save.")
         return "Final data is empty - no data to save."
 
-    return concat_data.to_csv("results.csv", index = False)
+    # Setting bucket name. Needs to be updated when implementing into GCS.
+    bucket_name = "input_bucket_name"
 
+    destination_name = "results.csv"
 
-run2()
+    # Saving the file to GCS.
+    gcs_dest = save_to_file(concat_data, bucket_name, destination_name)
 
+    if gcs_dest is None:
+        return "Failed to upload the file to GCS."
+
+    return f"File uploaded to {gcs_dest}"
