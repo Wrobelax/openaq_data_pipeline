@@ -1,5 +1,6 @@
 """Function importing measurement data from open repository and generating it to csv."""
 import logging
+import os
 
 # Importing modules.
 import requests as req
@@ -20,8 +21,12 @@ locations = {
     "https://api.openaq.org/v3/locations/10566/sensors": ["Wroclaw", "Conrad-Korzeniowski cst."],
 }
 
-# API Key. Requires personal API key to be provided
-header = {"X-API-Key": "Insert key here"}
+# API Key. Requires personal API key to be provided from os.env.
+api_key = os.environ.get("OPENAQ_API_KEY")
+if not api_key:
+    logging.error("OPENAQ_API_KEY environment variable not set. Please set it before running the script.")
+    pass
+header = {"X-API-Key": api_key}
 
 # Choosing the data from report.
 selected_columns = ["city", "location", "parameter.name", "latest.value", "latest.datetime.utc"]
@@ -190,7 +195,11 @@ def run(request) -> str:
         return "Final data is empty - no data to save."
 
     # Setting bucket name. Needs to be updated when implementing into GCS.
-    bucket_name = "input_bucket_name"
+    bucket_name = os.environ.get("GCS_BUCKET_NAME")
+
+    if not bucket_name:
+        logging.warning("GCS_BUCKET_NAME environment variable not set. Cannot save to GCS.")
+        return "GCS Bucket Name not set. Failed to upload the file to GCS."
 
     destination_name = "results.csv"
 
