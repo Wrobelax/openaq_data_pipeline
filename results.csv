@@ -1,0 +1,6 @@
+city,location,date,time,no2,o3,pm10,pm25
+Bydgoszcz,Warszawska st.,14:07:2025,12:00:00,13.1,68.8,11.0,6.7
+Warsaw,Kondratowicza st.,14:07:2025,11:00:00,7.6,99.8,8.9,4.3
+Katowice,Kossutha st.,14:07:2025,12:00:00,6.0,109.9,7.7,5.4
+Gorzow Wlkp.,Kosynierow Gdynskich st.,14:07:2025,12:00:00,7.8,74.0,13.0,6.6
+Wroclaw,Conrad-Korzeniowski cst.,14:07:2025,12:00:00,5.3,124.1,27.8,12.9
