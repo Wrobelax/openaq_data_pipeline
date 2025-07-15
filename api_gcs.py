@@ -21,11 +21,13 @@ locations = {
     "https://api.openaq.org/v3/locations/10566/sensors": ["Wroclaw", "Conrad-Korzeniowski cst."],
 }
 
-# API Key. Requires personal API key to be provided from os.env.
+# API Key. Requires personal API key to be provided from os.env. Raising an error if the key is not present.
 api_key = os.environ.get("OPENAQ_API_KEY")
+
 if not api_key:
     logging.error("OPENAQ_API_KEY environment variable not set. Please set it before running the script.")
-    pass
+    raise EnvironmentError("API Key not set. Please set it before running the script.")
+
 header = {"X-API-Key": api_key}
 
 # Choosing the data from report.
@@ -57,6 +59,9 @@ def fetch_data(url: str, header: dict) -> Union[dict, None]:
     try:
         response = req.get(url = url, headers = header)
         response.raise_for_status()
+        if not response.content:
+            logging.warning(f"Empty response from {url}")
+            return None
         return response.json()
 
     except ValueError:

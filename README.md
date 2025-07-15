@@ -77,4 +77,3 @@ gcloud functions deploy YOUR_FUNCTION_NAME \
   --trigger-http \
   --entry-point run \
   --set-env-vars OPENAQ_API_KEY="YOUR_OPENAQ_API_KEY_HERE",GCS_BUCKET_NAME="YOUR_GCS_BUCKET_NAME_HERE" \
-  # Add other deployment options as needed (e.g., --source, --region)
