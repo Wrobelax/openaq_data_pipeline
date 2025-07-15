@@ -24,10 +24,6 @@ locations = {
 # API Key. Requires personal API key to be provided from os.env. Raising an error if the key is not present.
 api_key = os.environ.get("OPENAQ_API_KEY")
 
-if not api_key:
-    logging.error("OPENAQ_API_KEY environment variable not set. Please set it before running the script.")
-    raise EnvironmentError("API Key not set. Please set it before running the script.")
-
 header = {"X-API-Key": api_key}
 
 # Choosing the data from report.
@@ -176,6 +172,11 @@ def run(request) -> str:
 
     # Creating empty DataFrame for data storing.
     data = []
+
+    # Checking if API key was set.
+    if not api_key:
+        logging.error("OPENAQ_API_KEY environment variable not set. Please set it before running the script.")
+        raise EnvironmentError("API Key not set. Please set it before running the script.")
 
     # Fetching the data and appending to the list.
     for url, (city, location) in locations.items():
