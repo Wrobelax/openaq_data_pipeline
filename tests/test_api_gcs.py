@@ -233,3 +233,6 @@ def test_normalize_data_pivot():
     assert df["pm10"].iloc[0] == 7
     assert df["o3"].iloc[0] == 17
     assert df["no2"].iloc[0] == 8
+
+
+# === Testing save_to_file ===

@@ -1,6 +1,6 @@
 ![Pytest](https://img.shields.io/badge/project_status-in_progress\open-blue)
 
-![Pytest](https://img.shields.io/badge/tests-pending-blue)
+![Pytest](https://img.shields.io/badge/tests-in_progress-blue)
 
 ## **Project description**
 
