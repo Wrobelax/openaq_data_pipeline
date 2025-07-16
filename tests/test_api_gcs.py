@@ -2,12 +2,18 @@
 
 # Importing modules.
 import pytest
-from unittest.mock import patch, MagicMock
-import requests.exceptions
-from google.cloud.exceptions import GoogleCloudError
-
-from openaq_data_pipeline.api_gcs import fetch_data, normalize_data, save_to_file, run
+import os
 import pandas as pd
+import requests.exceptions
+import pandas as pd
+import importlib
+
+import openaq_data_pipeline.api_gcs
+import openaq_data_pipeline.api_gcs as api_gcs
+from openaq_data_pipeline.api_gcs import fetch_data, normalize_data, save_to_file, run
+from google.cloud.exceptions import GoogleCloudError
+from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock
 
 
 
@@ -381,3 +387,67 @@ def test_save_to_file_args(mock_client):
 
 
 
+# === Testing run ===
+
+# Successful action of the function.
+@patch.dict(os.environ, {"OPENAQ_API_KEY" : "test_key", "GCS_BUCKET_NAME" : "test_bucket"}, clear = True)
+@patch("openaq_data_pipeline.api_gcs.fetch_data")
+@patch("openaq_data_pipeline.api_gcs.normalize_data")
+@patch("openaq_data_pipeline.api_gcs.save_to_file")
+def test_run_success(mock_save, mock_normalize, mock_fetch):
+
+    mock_fetch.return_value = {"results" :
+                                   [{"parameter.name" : "pm25",
+                                             "latest.value" : 7,
+                                             "latest.datetime.utc" : "2025-07-15T12:12:12Z"}
+                                    ]}
+
+    mock_normalize.return_value = pd.DataFrame({"city" : ["cityA"],
+                                                "location" : ["locA"],
+                                                "date" : ["15:07:2025"],
+                                                "time" : ["12:12:12"],
+                                                "pm25" : [7]
+                                                })
+    importlib.reload(api_gcs)
+
+    api_gcs.locations = {"https://openaqurl" : ["cityA", "locA"]}
+
+    mock_save.return_value = "gs://test_bucket/test.csv"
+
+    response = api_gcs.run(None)
+
+    assert response == "File uploaded to gs://test_bucket/test.csv"
+
+
+# No API key.
+@patch.dict(os.environ, {})
+def test_run_no_api_key():
+    with pytest.raises(EnvironmentError):
+        run(None)
+
+
+# No data collected.
+@patch.dict(os.environ, {"OPENAQ_API_KEY" : "test_key"})
+@patch("openaq_data_pipeline.api_gcs.fetch_data")
+@patch("openaq_data_pipeline.api_gcs.normalize_data")
+def test_run_no_data_collected(mock_fetch, mock_normalize):
+    mock_fetch.return_value = None
+    mock_normalize.return_value = None
+
+    response = run(None)
+    assert response == "No data collected"
+
+
+# No bucket name.
+@patch.dict(os.environ, {"OPENAQ_API_KEY" : "test_key", "GCS_BUCKET_NAME" : ""})
+@patch("openaq_data_pipeline.api_gcs.fetch_data")
+@patch("openaq_data_pipeline.api_gcs.normalize_data")
+def test_run_no_bucket_name(mock_fetch, mock_normalize):
+    mock_fetch.return_value = {"results" : [{"parameter.name" : "pm25",
+                                             "latest.value" : 11,
+                                             "latest.datetime.utc" : "2025-07-15T12:12:12Z"
+                                             }]}
+
+    mock_normalize.return_value = pd.DataFrame()
+    response = run(None)
+    assert  response == "GCS Bucket Name not set. Failed to upload the file to GCS."

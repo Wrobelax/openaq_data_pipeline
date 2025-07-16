@@ -1,11 +1,11 @@
 """Function importing measurement data from open repository and generating it to csv."""
-import logging
-import os
 
 # Importing modules.
 import requests as req
 import pandas as pd
 import io
+import logging
+import os
 from google.cloud import storage
 from typing import Union
 from google.cloud.exceptions import GoogleCloudError
