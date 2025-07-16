@@ -29,14 +29,14 @@ The main goal is to automate data retrieval and storage of air quality data in t
 
 ### Project Structure
 
-/openaq_data_pipeline
-├──  tests/ # Unit tests
-    ├── __init__.py
-    ├── pytest_log.txt
-    └── test_api_gcs.py # Script with tests.
-├── __init__.py
-├── api_gcs.py # Main logic for fetching, processing, and uploading data
-└── README.md # Project documentation
+- /openaq_data_pipeline
+  - tests/                # Unit tests
+    - \_\_init__.py
+    - pytest_log.txt
+    - test_api_gcs.py     # Script with tests
+  - \_\_init__.py
+  - api_gcs.py            # Main logic for fetching, processing, and uploading data
+  - README.md             # Project documentation
 
 
 ### How to Run Tests
