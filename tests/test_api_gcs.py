@@ -4,6 +4,8 @@
 import pytest
 from unittest.mock import patch, MagicMock
 import requests.exceptions
+from google.cloud.exceptions import GoogleCloudError
+
 from openaq_data_pipeline.api_gcs import fetch_data, normalize_data, save_to_file, run
 import pandas as pd
 
@@ -236,3 +238,146 @@ def test_normalize_data_pivot():
 
 
 # === Testing save_to_file ===
+
+# Successful save.
+@patch("openaq_data_pipeline.api_gcs.storage.Client")
+def test_save_to_file_success(mock_storage_client):
+    df = pd.DataFrame({
+        "city" : ["cityA"],
+        "location" : ["locA"],
+        "pm25" : [7]
+    })
+
+    mock_bucket = MagicMock()
+    mock_blob = MagicMock()
+    mock_storage_client.return_value.bucket.return_value = mock_bucket
+    mock_bucket.blob.return_value = mock_blob
+
+    result = save_to_file(df, "bucket_name", "test.csv")
+
+    mock_storage_client.assert_called_once()
+    mock_bucket.blob.assert_called_once_with("test.csv")
+    mock_blob.upload_from_string.assert_called_once()
+    assert result == "gs://bucket_name/test.csv"
+
+
+# IOError - conversion error.
+@patch("openaq_data_pipeline.api_gcs.storage.Client")
+def test_save_to_file_conv_error(mock_storage_client):
+    class BadDF(pd.DataFrame):
+        def to_csv(self, *args, **kwargs):
+            raise IOError("Conversion failed")
+
+    bad_df = BadDF()
+
+    result = save_to_file(bad_df, "bucket_name", "test.csv")
+    assert result is None
+
+
+# Storage error.
+@patch("openaq_data_pipeline.api_gcs.storage.Client")
+def test_save_to_file_stor_error(mock_storage_client):
+    df = pd.DataFrame({"city" : ["cityA"]})
+
+    mock_storage_client.side_effect = Exception("Storage init error")
+
+    result = save_to_file(df, "bucket_name", "test.csv")
+    assert result is None
+
+
+# GCS Error for storage.Client().
+@patch("openaq_data_pipeline.api_gcs.storage.Client")
+def test_save_to_file_gcs_error_storage(mock_storage_client):
+    df = pd.DataFrame({"city" : ["cityA"]})
+
+    mock_storage_client.side_effect = GoogleCloudError("Storage init error")
+
+    result = save_to_file(df, "bucket_name", "test.csv")
+    assert result is None
+
+
+# upload_from_string() returns IOError.
+@patch("openaq_data_pipeline.api_gcs.storage.Client")
+def test_save_to_file_upload_from_string_error(mock_client):
+    df = pd.DataFrame({"city" : ["cityA"]})
+
+    mock_blob = MagicMock()
+    mock_blob.upload_from_string.side_effect = IOError("Upload failed")
+
+    mock_bucket = MagicMock()
+    mock_bucket.blob.return_value = mock_blob
+
+    mock_storage = MagicMock()
+    mock_storage.bucket.return_value = mock_bucket
+    mock_client.return_value = mock_storage
+
+    result = save_to_file(df, "bucket_name", "test.csv")
+    assert result is None
+
+
+# upload_from_string() returns GCSError.
+@patch("openaq_data_pipeline.api_gcs.storage.Client")
+def test_save_to_file_upload_from_string_gcs_error(mock_client):
+    df = pd.DataFrame({"city" : ["cityA"]})
+
+    mock_blob = MagicMock()
+    mock_blob.upload_from_string.side_effect = GoogleCloudError("GCS write error")
+
+    mock_bucket = MagicMock()
+    mock_bucket.blob.return_value = mock_blob
+
+    mock_storage = MagicMock()
+    mock_storage.bucket.return_value = mock_bucket
+    mock_client.return_value = mock_storage
+
+    result = save_to_file(df, "bucket_name", "test.csv")
+    assert result is None
+
+
+# Saving empty df.
+@patch("openaq_data_pipeline.api_gcs.storage.Client")
+def test_save_to_file_empty_df(mock_client):
+    df = pd.DataFrame()
+
+    mock_blob = MagicMock()
+    mock_bucket = MagicMock()
+    mock_bucket.blob.return_value = mock_blob
+
+    mock_storage = MagicMock()
+    mock_storage.bucket.return_value = mock_bucket
+    mock_client.return_value = mock_storage
+
+    result = save_to_file(df, "bucket_name", "test.csv")
+
+    assert result == "gs://bucket_name/test.csv"
+    mock_blob.upload_from_string.assert_called_once()
+
+
+# Checking arguments of upload_from_string.
+@patch("openaq_data_pipeline.api_gcs.storage.Client")
+def test_save_to_file_args(mock_client):
+    df = pd.DataFrame({"city" : ["cityA"],
+                       "location" : ["locA"],
+                       "country" : ["PL"]
+                       })
+
+    expected_csv = df.to_csv(index = False)
+
+    mock_blob = MagicMock()
+    mock_bucket = MagicMock()
+    mock_bucket.blob.return_value = mock_blob
+
+    mock_storage = MagicMock()
+    mock_storage.bucket.return_value = mock_bucket
+    mock_client.return_value = mock_storage
+
+    result = save_to_file(df, "bucket_name", "test.csv")
+
+    mock_blob.upload_from_string.assert_called_once_with(
+        expected_csv,
+        content_type = "text/csv"
+    )
+    assert result == "gs://bucket_name/test.csv"
+
+
+

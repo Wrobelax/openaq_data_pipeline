@@ -153,7 +153,7 @@ def save_to_file(df: pd.DataFrame, bucket_name: str, destination_name: str) -> U
         blob.upload_from_string(csv_buffer.getvalue(), content_type = "text/csv")
         return f"gs://{bucket_name}/{destination_name}"
 
-    except (IOError, GoogleCloudError) as err:
+    except (Exception, IOError, GoogleCloudError) as err:
         logging.warning(f"Error during client initiation: {err}")
         return None
 
